@@ -3,95 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Main Game Monitor</title>
+    <title>Status</title>
     <style>
         body {
-            background-color: #0f0f11;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000000;
+            color: #ededed;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* The ONE TextLabel */
-        .main-label {
-            font-size: 32px;
-            font-weight: bold;
+        /* The single clean status pill */
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: #111111;
+            border: 1px solid #222222;
+            border-radius: 99px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: default;
             position: relative;
-            padding: 10px 20px;
-            border-radius: 8px;
-            transition: color 0.3s ease;
+            transition: border-color 0.2s;
         }
 
-        .status-ok { color: #10b981; } /* Green */
-        .status-fail { color: #ef4444; } /* Red */
-        .status-wait { color: #a1a1aa; } /* Gray */
+        .status-pill:hover {
+            border-color: #444444;
+        }
 
-        /* The Hover Tooltip */
-        .tooltip {
+        /* Minimalist indicator dots */
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .dot-wait { background-color: #555555; }
+        .dot-ok { background-color: #2ecc71; }
+        .dot-fail { background-color: #e74c3c; }
+
+        /* Sleek dropdown for errors */
+        .details-card {
             visibility: hidden;
             opacity: 0;
             position: absolute;
-            top: 130%;
+            top: calc(100% + 12px);
             left: 50%;
-            transform: translateX(-50%);
-            background-color: #1f1f23;
-            color: #e4e4e7;
-            text-align: left;
+            transform: translateX(-50%) translateY(-5px);
+            background: #111111;
+            border: 1px solid #222222;
             border-radius: 8px;
-            padding: 15px;
-            font-size: 14px;
-            font-weight: normal;
-            white-space: nowrap;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-            border: 1px solid #3f3f46;
-            transition: opacity 0.2s ease, visibility 0.2s ease;
+            padding: 16px;
+            width: max-content;
+            font-size: 13px;
+            color: #a0a0a0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            transition: all 0.2s ease;
             z-index: 10;
         }
 
-        /* Arrow pointing up */
-        .tooltip::after {
-            content: "";
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
-            border-color: transparent transparent #3f3f46 transparent;
-        }
-
-        /* Show tooltip on hover */
-        .main-label:hover .tooltip {
+        .status-pill:hover .details-card {
             visibility: visible;
             opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
-        .fail-text { color: #ef4444; font-weight: bold; }
-        .pass-text { color: #10b981; }
+        .fail-item {
+            color: #e74c3c;
+            margin-bottom: 6px;
+        }
+        
+        .fail-item:last-child { margin-bottom: 0; }
+        
+        .ok-text { color: #888888; }
     </style>
 </head>
 <body>
 
-    <div class="main-label status-wait" id="game-label">
-        Main Game
-        <div class="tooltip" id="tooltip-box">Waiting for executor ping...</div>
+    <div class="status-pill" id="main-badge">
+        <div class="dot dot-wait" id="status-dot"></div>
+        <span id="main-text">Main Game</span>
+        
+        <div class="details-card" id="details-box">
+            Awaiting connection...
+        </div>
     </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const targetId = urlParams.get('id');
-        const label = document.getElementById('game-label');
-        const tooltip = document.getElementById('tooltip-box');
+        const targetId = new URLSearchParams(window.location.search).get('id');
+        const dot = document.getElementById('status-dot');
+        const details = document.getElementById('details-box');
 
-        function updateUI() {
+        const labelMap = {
+            Terrain: "Terrain geometry missing",
+            Camera: "CurrentCamera instance unbound",
+            PlayerEntity: "Avatar entity not present in Workspace",
+            Gravity: "Physics gravity uninitialized",
+            Bounds: "FallenPartsDestroyHeight undefined",
+            GameTick: "Server processing loop frozen",
+            Streaming: "Instance streaming context failed",
+            WindPhysics: "Global wind physics uninitialized"
+        };
+
+        function update() {
             if (!targetId) {
-                label.className = "main-label status-fail";
-                tooltip.innerHTML = "Error: No ID provided in URL.";
+                dot.className = "dot dot-fail";
+                details.innerHTML = "Invalid connection token.";
                 return;
             }
 
@@ -99,44 +122,38 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
-                        label.className = "main-label status-fail";
-                        tooltip.innerHTML = "Connection lost or script paused.";
+                        dot.className = "dot dot-fail";
+                        details.innerHTML = "Instance disconnected.";
                         return;
                     }
 
                     const s = data.status;
-                    // Check if anything at all failed
-                    const hasFailures = !(s.Terrain && s.Camera && s.LocalPlayerChar && s.Gravity && s.FallenBounds && s.GameTick);
+                    let failures = [];
 
-                    if (hasFailures) {
-                        label.className = "main-label status-fail"; // Turn main text red
-                        
-                        // Build a list of ONLY what failed
-                        let failedList = "<strong>FAILURES DETECTED:</strong><br><br>";
-                        if (!s.Terrain) failedList += "<span class='fail-text'>✖ Workspace Terrain missing</span><br>";
-                        if (!s.Camera) failedList += "<span class='fail-text'>✖ CurrentCamera broken</span><br>";
-                        if (!s.LocalPlayerChar) failedList += "<span class='fail-text'>✖ LocalPlayer Character not in Workspace</span><br>";
-                        if (!s.Gravity) failedList += "<span class='fail-text'>✖ Gravity value missing</span><br>";
-                        if (!s.FallenBounds) failedList += "<span class='fail-text'>✖ FallenPartsDestroyHeight missing</span><br>";
-                        if (!s.GameTick) failedList += "<span class='fail-text'>✖ Game Tick frozen</span><br>";
-                        
-                        tooltip.innerHTML = failedList;
+                    // Check all keys against our map
+                    for (const [key, msg] of Object.entries(labelMap)) {
+                        if (s[key] === false) failures.push(msg);
+                    }
+
+                    if (failures.length > 0) {
+                        dot.className = "dot dot-fail";
+                        details.innerHTML = failures.map(f => `<div class="fail-item">• ${f}</div>`).join('');
                     } else {
-                        label.className = "main-label status-ok"; // Turn main text green
-                        tooltip.innerHTML = "<span class='pass-text'>✔ All Workspace systems operational</span><br><br>Last ping: " + data.lastUpdated;
+                        dot.className = "dot dot-ok";
+                        details.innerHTML = `<span class="ok-text">All Workspace systems nominal.<br><br>Sync: ${data.lastUpdated}</span>`;
                     }
                 })
                 .catch(() => {
-                    label.className = "main-label status-fail";
-                    tooltip.innerHTML = "Network error. Vercel unreachable.";
+                    dot.className = "dot dot-fail";
+                    details.innerHTML = "API routing error.";
                 });
         }
 
         if (targetId) {
-            updateUI();
-            setInterval(updateUI, 2000); // Check every 2 seconds
+            update();
+            setInterval(update, 2000);
         } else {
-            updateUI();
+            update();
         }
     </script>
 </body>
