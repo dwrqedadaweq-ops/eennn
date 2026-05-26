@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYSTEM.CORE // OVERWATCH</title>
+    <title>Instance Health</title>
     <style>
+        /* Modern, clean reset and font setup */
         :root {
-            --bg: #050505;
-            --panel: #0a0a0f;
-            --neon-green: #00ffcc;
-            --neon-red: #ff003c;
-            --text-main: #e0e0e0;
-            --text-muted: #555566;
-            --border: #1a1a24;
+            --bg: #09090b;
+            --card-bg: #18181b;
+            --border: #27272a;
+            --text-main: #fafafa;
+            --text-muted: #a1a1aa;
+            --ok: #10b981;
+            --fail: #ef4444;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -20,172 +21,190 @@
         body {
             background-color: var(--bg);
             color: var(--text-main);
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            overflow: hidden;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* CRT Scanline Effect */
-        body::after {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
-            background-size: 100% 2px, 3px 100%;
-            pointer-events: none;
+        .dashboard-container {
+            width: 100%;
+            max-width: 600px;
         }
 
-        .dashboard {
-            background: var(--panel);
-            width: 900px;
-            padding: 40px;
-            border: 1px solid var(--border);
-            border-top: 3px solid var(--neon-green);
-            box-shadow: 0 0 30px rgba(0, 255, 204, 0.1);
-            position: relative;
-            z-index: 10;
-        }
-
+        /* Clean Header */
         .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            border-bottom: 1px dashed var(--text-muted);
-            padding-bottom: 15px;
-            margin-bottom: 30px;
+            margin-bottom: 32px;
+            text-align: left;
         }
 
         .header h1 {
             font-size: 24px;
-            color: var(--neon-green);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
         }
 
-        .sys-id { color: var(--text-muted); font-size: 12px; }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-
-        .module {
-            background: #08080c;
-            border: 1px solid var(--border);
-            padding: 20px;
-            position: relative;
-        }
-
-        /* Techy corner brackets */
-        .module::before, .module::after {
-            content: ''; position: absolute; width: 10px; height: 10px; border: 1px solid var(--text-muted);
-        }
-        .module::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-        .module::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
-
-        .mod-title {
+        .target-id {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
             color: var(--text-muted);
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 15px;
+            background: var(--card-bg);
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            display: inline-block;
+            word-break: break-all;
         }
 
-        .status-text {
-            font-size: 28px;
-            font-weight: bold;
+        /* The Data Card */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* List Items */
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            transition: background-color 0.2s ease;
+        }
+
+        .status-row:last-child {
+            border-bottom: none;
+        }
+
+        .status-row:hover {
+            background: #202024;
+        }
+
+        .service-name {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        /* Modern Status Badges */
+        .badge {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 9999px;
+            letter-spacing: 0.3px;
         }
 
-        .ok { color: var(--neon-green); text-shadow: 0 0 15px var(--neon-green); }
-        .fail { color: var(--neon-red); text-shadow: 0 0 15px var(--neon-red); }
-        .loading { color: var(--text-muted); animation: pulse 1.5s infinite; }
-
-        .indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
+        .badge-ok {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--ok);
         }
-        .bg-ok { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
-        .bg-fail { background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); }
-        .bg-loading { background: var(--text-muted); }
 
-        .footer {
-            margin-top: 30px;
-            text-align: right;
-            font-size: 12px;
+        .badge-fail {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--fail);
+        }
+
+        .badge-loading {
+            background: var(--border);
             color: var(--text-muted);
         }
 
-        .error-screen {
-            text-align: center;
-            padding: 50px;
-            color: var(--neon-red);
+        /* Subtle indicator dots */
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        
+        .dot-ok { background-color: var(--ok); }
+        .dot-fail { background-color: var(--fail); }
+        .dot-loading { background-color: var(--text-muted); }
+
+        /* Footer */
+        .footer {
+            margin-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .status-pulse {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--ok);
+            border-radius: 50%;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
         @keyframes pulse {
-            0% { opacity: 0.3; }
-            50% { opacity: 1; }
-            100% { opacity: 0.3; }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
         }
     </style>
 </head>
 <body>
 
-    <div class="dashboard" id="main-dash">
+    <div class="dashboard-container">
         <div class="header">
-            <h1>Server Uplink // Overwatch</h1>
-            <div class="sys-id" id="target-id">AWAITING TARGET ID...</div>
+            <h1>Instance Health</h1>
+            <div class="target-id" id="target-id">Awaiting Target ID...</div>
         </div>
 
-        <div class="grid" id="modules">
-            <div class="module">
-                <div class="mod-title">SEC-01 // Terrain Engine</div>
-                <div class="status-text"><div class="indicator bg-loading"></div><span class="loading">STANDBY</span></div>
-            </div>
-            <div class="module">
-                <div class="mod-title">SEC-02 // Lighting Engine</div>
-                <div class="status-text"><div class="indicator bg-loading"></div><span class="loading">STANDBY</span></div>
-            </div>
-            <div class="module">
-                <div class="mod-title">SEC-03 // Replicated Storage</div>
-                <div class="status-text"><div class="indicator bg-loading"></div><span class="loading">STANDBY</span></div>
-            </div>
-            <div class="module">
-                <div class="mod-title">SEC-04 // Player Service</div>
-                <div class="status-text"><div class="indicator bg-loading"></div><span class="loading">STANDBY</span></div>
+        <div class="card" id="status-card">
+            <div class="status-row">
+                <span class="service-name">Establishing Connection...</span>
+                <div class="badge badge-loading"><div class="dot dot-loading"></div>WAIT</div>
             </div>
         </div>
 
         <div class="footer">
-            LAST PING: <span id="last-ping">--:--:--</span>
+            <div class="status-pulse">
+                <div class="pulse-dot" id="live-indicator" style="display: none;"></div>
+                <span id="connection-status">Connecting to endpoint...</span>
+            </div>
+            <span id="last-ping">--:--:--</span>
         </div>
     </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const specificServerId = urlParams.get('id');
-        const modulesDiv = document.getElementById('modules');
+        const card = document.getElementById('status-card');
 
-        function createModule(title, isOk) {
-            const statusClass = isOk ? 'ok' : 'fail';
-            const bgClass = isOk ? 'bg-ok' : 'bg-fail';
-            const text = isOk ? 'ONLINE' : 'FATAL';
+        function createRow(name, isOk) {
+            const badgeClass = isOk ? 'badge-ok' : 'badge-fail';
+            const dotClass = isOk ? 'dot-ok' : 'dot-fail';
+            const text = isOk ? 'Operational' : 'Failing';
             
             return `
-            <div class="module">
-                <div class="mod-title">${title}</div>
-                <div class="status-text ${statusClass}">
-                    <div class="indicator ${bgClass}"></div>
+            <div class="status-row">
+                <span class="service-name">${name}</span>
+                <div class="badge ${badgeClass}">
+                    <div class="dot ${dotClass}"></div>
                     ${text}
                 </div>
             </div>`;
@@ -193,42 +212,44 @@
 
         function updateUI() {
             if (!specificServerId) {
-                document.getElementById('main-dash').innerHTML = `
-                    <div class="error-screen">
-                        <h2 style="font-size: 40px; margin-bottom: 10px;">NO TARGET ACQUIRED</h2>
-                        <p>You must provide a valid ?id= in the URL.</p>
-                    </div>`;
+                document.getElementById('target-id').textContent = 'No ID Provided';
+                document.getElementById('connection-status').textContent = 'Disconnected';
+                card.innerHTML = `<div class="error-message">Please provide a valid ?id= parameter in the URL.</div>`;
                 return;
             }
 
-            document.getElementById('target-id').textContent = `TARGET: ${specificServerId}`;
+            document.getElementById('target-id').textContent = specificServerId;
 
-            // Make sure to use your exact Vercel URL here!
-            fetch(`https://eennn.vercel.app/api/status?id=${specificServerId}`)
+            fetch(`/api/status?id=${specificServerId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
-                        modulesDiv.innerHTML = `<div style="grid-column: span 2; color: var(--neon-red); text-align: center;">[ SYSTEM ERROR: ${data.error} ]<br>Check if the Lua script is actively running.</div>`;
+                        document.getElementById('live-indicator').style.display = 'none';
+                        document.getElementById('connection-status').textContent = 'Instance Offline';
+                        card.innerHTML = `<div class="error-message">${data.error}</div>`;
                         return;
                     }
 
-                    document.getElementById('last-ping').textContent = data.lastUpdated;
+                    document.getElementById('live-indicator').style.display = 'block';
+                    document.getElementById('connection-status').textContent = 'Live Updating';
+                    document.getElementById('last-ping').textContent = `Updated: ${data.lastUpdated}`;
                     
-                    modulesDiv.innerHTML = 
-                        createModule("SEC-01 // Terrain Engine", data.status.Terrain) +
-                        createModule("SEC-02 // Lighting Engine", data.status.Lighting) +
-                        createModule("SEC-03 // Replicated Storage", data.status.Storage) +
-                        createModule("SEC-04 // Player Service", data.status.Players);
+                    card.innerHTML = 
+                        createRow("Workspace Terrain", data.status.Terrain) +
+                        createRow("Lighting Service", data.status.Lighting) +
+                        createRow("Replicated Storage", data.status.Storage) +
+                        createRow("Player Core", data.status.Players);
                 })
                 .catch(err => {
-                    modulesDiv.innerHTML = `<div style="grid-column: span 2; color: var(--neon-red); text-align: center;">[ NETWORK ERROR ]<br>Failed to connect to API endpoint.</div>`;
+                    document.getElementById('live-indicator').style.display = 'none';
+                    document.getElementById('connection-status').textContent = 'Network Error';
+                    card.innerHTML = `<div class="error-message">Failed to reach API endpoint.</div>`;
                 });
         }
 
-        // Loop the UI update every 3 seconds to keep it live
         if (specificServerId) {
             updateUI();
-            setInterval(updateUI, 3000); 
+            setInterval(updateUI, 2500); // UI checks every 2.5 seconds
         } else {
             updateUI();
         }
