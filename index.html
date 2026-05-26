@@ -3,215 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Main Game | Workspace Status</title>
+    <title>Main Game Monitor</title>
     <style>
-        :root {
-            --bg: #09090b;
-            --card-bg: #18181b;
-            --border: #27272a;
-            --text-main: #fafafa;
-            --text-muted: #a1a1aa;
-            --ok: #10b981;
-            --fail: #ef4444;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f0f11;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            -webkit-font-smoothing: antialiased;
+            height: 100vh;
+            margin: 0;
         }
 
-        .dashboard-container {
-            width: 100%;
-            max-width: 600px;
+        /* The ONE TextLabel */
+        .main-label {
+            font-size: 32px;
+            font-weight: bold;
+            cursor: default;
+            position: relative;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: color 0.3s ease;
         }
 
-        .header {
-            margin-bottom: 32px;
+        .status-ok { color: #10b981; } /* Green */
+        .status-fail { color: #ef4444; } /* Red */
+        .status-wait { color: #a1a1aa; } /* Gray */
+
+        /* The Hover Tooltip */
+        .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            top: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f1f23;
+            color: #e4e4e7;
             text-align: left;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 14px;
+            font-weight: normal;
+            white-space: nowrap;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            border: 1px solid #3f3f46;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 10;
         }
 
-        .header h1 {
-            font-size: 26px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-            margin-bottom: 8px;
+        /* Arrow pointing up */
+        .tooltip::after {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent #3f3f46 transparent;
         }
 
-        .target-id {
-            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-            font-size: 13px;
-            color: var(--text-muted);
-            background: var(--card-bg);
-            padding: 4px 8px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            display: inline-block;
-            word-break: break-all;
+        /* Show tooltip on hover */
+        .main-label:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
         }
 
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 18px 24px;
-            border-bottom: 1px solid var(--border);
-            transition: background-color 0.2s ease;
-        }
-
-        .status-row:last-child { border-bottom: none; }
-        .status-row:hover { background: #202024; }
-
-        .service-name {
-            font-size: 15px;
-            font-weight: 500;
-        }
-
-        .badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 6px 12px;
-            border-radius: 9999px;
-        }
-
-        .badge-ok { background: rgba(16, 185, 129, 0.1); color: var(--ok); }
-        .badge-fail { background: rgba(239, 68, 68, 0.1); color: var(--fail); }
-        .badge-loading { background: var(--border); color: var(--text-muted); }
-
-        .dot { width: 6px; height: 6px; border-radius: 50%; }
-        .dot-ok { background-color: var(--ok); }
-        .dot-fail { background-color: var(--fail); }
-        .dot-loading { background-color: var(--text-muted); }
-
-        .footer {
-            margin-top: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        .status-pulse { display: flex; align-items: center; gap: 6px; }
-        .pulse-dot {
-            width: 8px; height: 8px; background-color: var(--ok);
-            border-radius: 50%; animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        .error-message { text-align: center; padding: 40px; color: var(--text-muted); }
+        .fail-text { color: #ef4444; font-weight: bold; }
+        .pass-text { color: #10b981; }
     </style>
 </head>
 <body>
 
-    <div class="dashboard-container">
-        <div class="header">
-            <h1>Main Game</h1>
-            <div class="target-id" id="target-id">Awaiting Target ID...</div>
-        </div>
-
-        <div class="card" id="status-card">
-            <div class="status-row">
-                <span class="service-name">Establishing Connection...</span>
-                <div class="badge badge-loading"><div class="dot dot-loading"></div>WAIT</div>
-            </div>
-        </div>
-
-        <div class="footer">
-            <div class="status-pulse">
-                <div class="pulse-dot" id="live-indicator" style="display: none;"></div>
-                <span id="connection-status">Connecting to endpoint...</span>
-            </div>
-            <span id="last-ping">--:--:--</span>
-        </div>
+    <div class="main-label status-wait" id="game-label">
+        Main Game
+        <div class="tooltip" id="tooltip-box">Waiting for executor ping...</div>
     </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const specificServerId = urlParams.get('id');
-        const card = document.getElementById('status-card');
-
-        function createRow(name, isOk) {
-            const badgeClass = isOk ? 'badge-ok' : 'badge-fail';
-            const dotClass = isOk ? 'dot-ok' : 'dot-fail';
-            const text = isOk ? 'Active' : 'Missing';
-            
-            return `
-            <div class="status-row">
-                <span class="service-name">${name}</span>
-                <div class="badge ${badgeClass}">
-                    <div class="dot ${dotClass}"></div>
-                    ${text}
-                </div>
-            </div>`;
-        }
+        const targetId = urlParams.get('id');
+        const label = document.getElementById('game-label');
+        const tooltip = document.getElementById('tooltip-box');
 
         function updateUI() {
-            if (!specificServerId) {
-                document.getElementById('target-id').textContent = 'No Authentication Token';
-                document.getElementById('connection-status').textContent = 'Disconnected';
-                card.innerHTML = `<div class="error-message">A secure link from the executor is required.</div>`;
+            if (!targetId) {
+                label.className = "main-label status-fail";
+                tooltip.innerHTML = "Error: No ID provided in URL.";
                 return;
             }
 
-            document.getElementById('target-id').textContent = specificServerId;
-
-            fetch(`/api/status?id=${specificServerId}`)
+            fetch(`/api/status?id=${targetId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
-                        document.getElementById('live-indicator').style.display = 'none';
-                        document.getElementById('connection-status').textContent = 'Instance Offline';
-                        card.innerHTML = `<div class="error-message">${data.error}</div>`;
+                        label.className = "main-label status-fail";
+                        tooltip.innerHTML = "Connection lost or script paused.";
                         return;
                     }
 
-                    document.getElementById('live-indicator').style.display = 'block';
-                    document.getElementById('connection-status').textContent = 'Live Updating';
-                    document.getElementById('last-ping').textContent = `Sync: ${data.lastUpdated}`;
-                    
-                    // Maps exactly to the 6 Workspace checks sent from Roblox
-                    card.innerHTML = 
-                        createRow("Workspace Terrain", data.status.Terrain) +
-                        createRow("Current Camera", data.status.Camera) +
-                        createRow("LocalPlayer Character", data.status.LocalPlayerChar) +
-                        createRow("Physics Gravity", data.status.Gravity) +
-                        createRow("World Bounds (FallenParts)", data.status.FallenBounds) +
-                        createRow("Game Loop Tick", data.status.GameTick);
+                    const s = data.status;
+                    // Check if anything at all failed
+                    const hasFailures = !(s.Terrain && s.Camera && s.LocalPlayerChar && s.Gravity && s.FallenBounds && s.GameTick);
+
+                    if (hasFailures) {
+                        label.className = "main-label status-fail"; // Turn main text red
+                        
+                        // Build a list of ONLY what failed
+                        let failedList = "<strong>FAILURES DETECTED:</strong><br><br>";
+                        if (!s.Terrain) failedList += "<span class='fail-text'>✖ Workspace Terrain missing</span><br>";
+                        if (!s.Camera) failedList += "<span class='fail-text'>✖ CurrentCamera broken</span><br>";
+                        if (!s.LocalPlayerChar) failedList += "<span class='fail-text'>✖ LocalPlayer Character not in Workspace</span><br>";
+                        if (!s.Gravity) failedList += "<span class='fail-text'>✖ Gravity value missing</span><br>";
+                        if (!s.FallenBounds) failedList += "<span class='fail-text'>✖ FallenPartsDestroyHeight missing</span><br>";
+                        if (!s.GameTick) failedList += "<span class='fail-text'>✖ Game Tick frozen</span><br>";
+                        
+                        tooltip.innerHTML = failedList;
+                    } else {
+                        label.className = "main-label status-ok"; // Turn main text green
+                        tooltip.innerHTML = "<span class='pass-text'>✔ All Workspace systems operational</span><br><br>Last ping: " + data.lastUpdated;
+                    }
                 })
-                .catch(err => {
-                    document.getElementById('live-indicator').style.display = 'none';
-                    document.getElementById('connection-status').textContent = 'Network Error';
-                    card.innerHTML = `<div class="error-message">Failed to reach API endpoint.</div>`;
+                .catch(() => {
+                    label.className = "main-label status-fail";
+                    tooltip.innerHTML = "Network error. Vercel unreachable.";
                 });
         }
 
-        if (specificServerId) {
+        if (targetId) {
             updateUI();
-            setInterval(updateUI, 2500); // 2.5s match with executor
+            setInterval(updateUI, 2000); // Check every 2 seconds
         } else {
             updateUI();
         }
