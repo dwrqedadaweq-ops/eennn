@@ -5,12 +5,12 @@ function refreshUI(data) {
     keys.forEach((key, index) => {
         const el = document.getElementById(ids[index]);
         const status = data[key];
-        
         el.textContent = status ? "OK" : "FAIL";
         el.className = status ? "good" : "bad";
     });
 }
 
+// Ensure this matches the Vercel API path
 fetch('/api/status')
     .then(res => res.json())
     .then(data => refreshUI(data));
