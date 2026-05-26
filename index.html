@@ -3,157 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Status</title>
+    <title>Workspace Uplink</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body {
-            background-color: #000000;
-            color: #ededed;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            background: radial-gradient(circle at top left, #1a1a24 0%, #09090d 100%);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* The single clean status pill */
-        .status-pill {
+        /* The Frosted Glass Container */
+        .glass-panel {
+            background: rgba(20, 20, 28, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 32px;
+            width: 100%;
+            max-width: 640px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+        }
+
+        .header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
-            padding: 8px 16px;
-            background: #111111;
-            border: 1px solid #222222;
-            border-radius: 99px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .target-id {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #888;
+            font-family: monospace;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* The 2-Column Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        /* Individual Status Cards */
+        .card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-name {
             font-size: 14px;
             font-weight: 500;
-            cursor: default;
-            position: relative;
-            transition: border-color 0.2s;
+            color: #d1d1d1;
         }
 
-        .status-pill:hover {
-            border-color: #444444;
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        /* Minimalist indicator dots */
+        /* Colors and Glowing Dots */
+        .wait { color: #666; }
+        .ok { color: #00e676; text-shadow: 0 0 10px rgba(0, 230, 118, 0.3); }
+        .fail { color: #ff1744; text-shadow: 0 0 10px rgba(255, 23, 68, 0.3); }
+
         .dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
         }
 
-        .dot-wait { background-color: #555555; }
-        .dot-ok { background-color: #2ecc71; }
-        .dot-fail { background-color: #e74c3c; }
+        .wait .dot { background: #666; }
+        .ok .dot { background: #00e676; box-shadow: 0 0 8px #00e676; }
+        .fail .dot { background: #ff1744; box-shadow: 0 0 8px #ff1744; }
 
-        /* Sleek dropdown for errors */
-        .details-card {
-            visibility: hidden;
-            opacity: 0;
-            position: absolute;
-            top: calc(100% + 12px);
-            left: 50%;
-            transform: translateX(-50%) translateY(-5px);
-            background: #111111;
-            border: 1px solid #222222;
-            border-radius: 8px;
-            padding: 16px;
-            width: max-content;
-            font-size: 13px;
-            color: #a0a0a0;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            transition: all 0.2s ease;
-            z-index: 10;
+        .footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 12px;
+            color: #555;
         }
 
-        .status-pill:hover .details-card {
-            visibility: visible;
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
+        /* Makes it look good on phones too */
+        @media (max-width: 500px) {
+            .grid { grid-template-columns: 1fr; }
         }
-
-        .fail-item {
-            color: #e74c3c;
-            margin-bottom: 6px;
-        }
-        
-        .fail-item:last-child { margin-bottom: 0; }
-        
-        .ok-text { color: #888888; }
     </style>
 </head>
 <body>
 
-    <div class="status-pill" id="main-badge">
-        <div class="dot dot-wait" id="status-dot"></div>
-        <span id="main-text">Main Game</span>
-        
-        <div class="details-card" id="details-box">
-            Awaiting connection...
+    <div class="glass-panel">
+        <div class="header">
+            <div class="title">Main Game Status</div>
+            <div class="target-id" id="target-id">Awaiting Token...</div>
         </div>
+
+        <div class="grid" id="grid-container">
+            <div class="card"><span class="card-name">Awaiting Link</span><div class="status wait"><div class="dot"></div>WAIT</div></div>
+        </div>
+
+        <div class="footer" id="last-ping">Sync: --:--:--</div>
     </div>
 
     <script>
         const targetId = new URLSearchParams(window.location.search).get('id');
-        const dot = document.getElementById('status-dot');
-        const details = document.getElementById('details-box');
+        const grid = document.getElementById('grid-container');
 
-        const labelMap = {
-            Terrain: "Terrain geometry missing",
-            Camera: "CurrentCamera instance unbound",
-            PlayerEntity: "Avatar entity not present in Workspace",
-            Gravity: "Physics gravity uninitialized",
-            Bounds: "FallenPartsDestroyHeight undefined",
-            GameTick: "Server processing loop frozen",
-            Streaming: "Instance streaming context failed",
-            WindPhysics: "Global wind physics uninitialized"
+        // Maps exactly to the Lua script
+        const map = {
+            Terrain: "Terrain Engine",
+            Camera: "Current Camera",
+            PlayerEntity: "LocalPlayer Entity",
+            Gravity: "Physics Gravity",
+            Bounds: "World Bounds",
+            GameTick: "Server Tick",
+            Streaming: "Instance Streaming",
+            WindPhysics: "Global Wind"
         };
 
-        function update() {
+        function createCard(name, isOk) {
+            const stateClass = isOk ? 'ok' : 'fail';
+            const stateText = isOk ? 'OK' : 'FAIL';
+            return `
+                <div class="card">
+                    <span class="card-name">${name}</span>
+                    <div class="status ${stateClass}">
+                        <div class="dot"></div>${stateText}
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateUI() {
             if (!targetId) {
-                dot.className = "dot dot-fail";
-                details.innerHTML = "Invalid connection token.";
+                document.getElementById('target-id').textContent = "ERROR";
+                grid.innerHTML = `<div class="card" style="grid-column: 1 / -1;"><span class="card-name" style="color: #ff1744;">No Token Provided in URL</span></div>`;
                 return;
             }
+
+            document.getElementById('target-id').textContent = "ID: " + targetId.substring(0, 10) + "...";
 
             fetch(`/api/status?id=${targetId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
-                        dot.className = "dot dot-fail";
-                        details.innerHTML = "Instance disconnected.";
+                        grid.innerHTML = `<div class="card" style="grid-column: 1 / -1;"><span class="card-name" style="color: #ff1744;">Connection Lost / Script Paused</span></div>`;
                         return;
                     }
 
-                    const s = data.status;
-                    let failures = [];
+                    document.getElementById('last-ping').textContent = "Last Sync: " + data.lastUpdated;
 
-                    // Check all keys against our map
-                    for (const [key, msg] of Object.entries(labelMap)) {
-                        if (s[key] === false) failures.push(msg);
+                    let html = "";
+                    for (const [key, label] of Object.entries(map)) {
+                        html += createCard(label, data.status[key]);
                     }
-
-                    if (failures.length > 0) {
-                        dot.className = "dot dot-fail";
-                        details.innerHTML = failures.map(f => `<div class="fail-item">• ${f}</div>`).join('');
-                    } else {
-                        dot.className = "dot dot-ok";
-                        details.innerHTML = `<span class="ok-text">All Workspace systems nominal.<br><br>Sync: ${data.lastUpdated}</span>`;
-                    }
+                    grid.innerHTML = html;
                 })
                 .catch(() => {
-                    dot.className = "dot dot-fail";
-                    details.innerHTML = "API routing error.";
+                    grid.innerHTML = `<div class="card" style="grid-column: 1 / -1;"><span class="card-name" style="color: #ff1744;">API Routing Error</span></div>`;
                 });
         }
 
         if (targetId) {
-            update();
-            setInterval(update, 2000);
+            updateUI();
+            setInterval(updateUI, 2000);
         } else {
-            update();
+            updateUI();
         }
     </script>
 </body>
