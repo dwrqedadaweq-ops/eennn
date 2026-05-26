@@ -3,192 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workspace Uplink</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <title>Environment Diagnostics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
-            background: radial-gradient(circle at top left, #1a1a24 0%, #09090d 100%);
-            color: #ffffff;
+            background-color: #09090b; /* Pitch dark SaaS background */
+            color: #fafafa;
             font-family: 'Inter', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* The Frosted Glass Container */
-        .glass-panel {
-            background: rgba(20, 20, 28, 0.6);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-            padding: 32px;
-            width: 100%;
-            max-width: 640px;
-            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
-        }
-
-        .header {
+        /* The ONE primary label */
+        .master-label {
+            position: relative;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .title {
-            font-size: 22px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
-
-        .target-id {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 6px 12px;
+            gap: 12px;
+            background: #18181b;
+            border: 1px solid #27272a;
+            padding: 12px 24px;
             border-radius: 8px;
-            font-size: 12px;
-            color: #888;
-            font-family: monospace;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        /* The 2-Column Grid */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-        }
-
-        /* Individual Status Cards */
-        .card {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .card-name {
-            font-size: 14px;
-            font-weight: 500;
-            color: #d1d1d1;
-        }
-
-        .status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
+            font-size: 16px;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            cursor: default;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transition: border-color 0.2s, background 0.2s;
+            z-index: 20;
         }
 
-        /* Colors and Glowing Dots */
-        .wait { color: #666; }
-        .ok { color: #00e676; text-shadow: 0 0 10px rgba(0, 230, 118, 0.3); }
-        .fail { color: #ff1744; text-shadow: 0 0 10px rgba(255, 23, 68, 0.3); }
+        .master-label:hover { background: #202024; border-color: #3f3f46; }
 
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
+        /* The dynamic status dot */
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .wait .dot { background: #71717a; box-shadow: 0 0 8px rgba(113, 113, 122, 0.4); }
+        .fail .dot { background: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.6); }
+        .ok .dot { background: #10b981; box-shadow: 0 0 12px rgba(16, 185, 129, 0.6); }
+
+        .wait { color: #a1a1aa; }
+        .fail { color: #fca5a5; }
+        .ok { color: #6ee7b7; }
+
+        /* The Dropdown Log (Terminal style) */
+        .log-panel {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            top: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            background: #0f0f12;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+            width: max-content;
+            max-width: 600px;
+            max-height: 350px; /* Forces scroll if too many errors */
+            overflow-y: auto;
+            padding: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 10;
         }
 
-        .wait .dot { background: #666; }
-        .ok .dot { background: #00e676; box-shadow: 0 0 8px #00e676; }
-        .fail .dot { background: #ff1744; box-shadow: 0 0 8px #ff1744; }
+        .master-label:hover .log-panel {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
 
-        .footer {
-            margin-top: 24px;
-            text-align: center;
+        /* Custom Scrollbar for the log */
+        .log-panel::-webkit-scrollbar { width: 8px; }
+        .log-panel::-webkit-scrollbar-track { background: transparent; }
+        .log-panel::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+        .log-panel::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+        .log-entry {
+            font-family: 'JetBrains Mono', monospace;
             font-size: 12px;
-            color: #555;
+            color: #d4d4d8;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            line-height: 1.4;
         }
+        
+        .log-entry:last-child { border-bottom: none; }
+        .log-prefix { color: #ef4444; font-weight: 500; margin-right: 8px; }
 
-        /* Makes it look good on phones too */
-        @media (max-width: 500px) {
-            .grid { grid-template-columns: 1fr; }
+        .id-stamp {
+            position: absolute;
+            bottom: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #52525b;
         }
     </style>
 </head>
 <body>
 
-    <div class="glass-panel">
-        <div class="header">
-            <div class="title">Main Game Status</div>
-            <div class="target-id" id="target-id">Awaiting Token...</div>
+    <div class="master-label wait" id="master-badge">
+        <div class="dot"></div>
+        <span id="master-text">Awaiting Telemetry...</span>
+        
+        <div class="log-panel" id="log-content">
+            <div class="log-entry" style="color: #71717a;">Waiting for executor connection...</div>
         </div>
-
-        <div class="grid" id="grid-container">
-            <div class="card"><span class="card-name">Awaiting Link</span><div class="status wait"><div class="dot"></div>WAIT</div></div>
-        </div>
-
-        <div class="footer" id="last-ping">Sync: --:--:--</div>
     </div>
+
+    <div class="id-stamp" id="id-stamp">ID: ---</div>
 
     <script>
         const targetId = new URLSearchParams(window.location.search).get('id');
-        const grid = document.getElementById('grid-container');
-
-        // Maps exactly to the Lua script
-        const map = {
-            Terrain: "Terrain Engine",
-            Camera: "Current Camera",
-            PlayerEntity: "LocalPlayer Entity",
-            Gravity: "Physics Gravity",
-            Bounds: "World Bounds",
-            GameTick: "Server Tick",
-            Streaming: "Instance Streaming",
-            WindPhysics: "Global Wind"
-        };
-
-        function createCard(name, isOk) {
-            const stateClass = isOk ? 'ok' : 'fail';
-            const stateText = isOk ? 'OK' : 'FAIL';
-            return `
-                <div class="card">
-                    <span class="card-name">${name}</span>
-                    <div class="status ${stateClass}">
-                        <div class="dot"></div>${stateText}
-                    </div>
-                </div>
-            `;
-        }
+        const badge = document.getElementById('master-badge');
+        const text = document.getElementById('master-text');
+        const logContent = document.getElementById('log-content');
+        const stamp = document.getElementById('id-stamp');
 
         function updateUI() {
             if (!targetId) {
-                document.getElementById('target-id').textContent = "ERROR";
-                grid.innerHTML = `<div class="card" style="grid-column: 1 / -1;"><span class="card-name" style="color: #ff1744;">No Token Provided in URL</span></div>`;
+                badge.className = "master-label fail";
+                text.textContent = "Authentication Error";
+                logContent.innerHTML = `<div class="log-entry"><span class="log-prefix">[ ERR ]</span> No token provided in URL.</div>`;
                 return;
             }
 
-            document.getElementById('target-id').textContent = "ID: " + targetId.substring(0, 10) + "...";
+            stamp.textContent = "SESSION ID: " + targetId.substring(0, 16) + "...";
 
             fetch(`/api/status?id=${targetId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
-                        grid.innerHTML = `<div class="card" style="grid-column: 1 / -1;"><span class="card-name" style="color: #ff1744;">Connection Lost / Script Paused</span></div>`;
+                        badge.className = "master-label fail";
+                        text.textContent = "Link Severed";
+                        logContent.innerHTML = `<div class="log-entry"><span class="log-prefix">[ ERR ]</span> Connection to instance lost.</div>`;
                         return;
                     }
 
-                    document.getElementById('last-ping').textContent = "Last Sync: " + data.lastUpdated;
+                    // Extract the Failures array from the new Lua format
+                    const failures = data.status.Failures || [];
 
-                    let html = "";
-                    for (const [key, label] of Object.entries(map)) {
-                        html += createCard(label, data.status[key]);
+                    if (failures.length > 0) {
+                        badge.className = "master-label fail";
+                        text.textContent = `${failures.length} Environment Checks Failed`;
+                        
+                        // Map the array into clean, terminal-style lines
+                        logContent.innerHTML = failures.map(failString => 
+                            `<div class="log-entry"><span class="log-prefix">[ FAIL ]</span>${failString}</div>`
+                        ).join('');
+                    } else {
+                        badge.className = "master-label ok";
+                        text.textContent = "Environment Nominal";
+                        logContent.innerHTML = `<div class="log-entry" style="color: #10b981;">[ OK ] All systems passing correctly.</div>`;
                     }
-                    grid.innerHTML = html;
                 })
                 .catch(() => {
-                    grid.innerHTML = `<div class="card" style="grid-column: 1 / -1;"><span class="card-name" style="color: #ff1744;">API Routing Error</span></div>`;
+                    badge.className = "master-label fail";
+                    text.textContent = "API Error";
+                    logContent.innerHTML = `<div class="log-entry"><span class="log-prefix">[ ERR ]</span> Failed to route to Vercel API.</div>`;
                 });
         }
 
